@@ -192,6 +192,16 @@ class _PrestamoCupertinoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Visualización mejorada: muestra montoOriginal si está pagado, monto actual y original si está activo
+    String montoText;
+    if (prestamo.pagado) {
+      montoText =
+          '\$${prestamo.montoOriginal.toStringAsFixed(2)} (pagado)';
+    } else {
+      montoText =
+          '\$${prestamo.monto.toStringAsFixed(2)} / \$${prestamo.montoOriginal.toStringAsFixed(2)}';
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
@@ -221,7 +231,7 @@ class _PrestamoCupertinoTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '\$${prestamo.monto.toStringAsFixed(2)}',
+                    montoText,
                     style: TextStyle(
                       color: prestamo.pagado
                           ? CupertinoColors.activeGreen
