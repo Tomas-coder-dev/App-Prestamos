@@ -18,7 +18,12 @@ class DatabaseHelper {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    return await openDatabase(path, version: 2, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 3,
+      onCreate: _createDB,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future _createDB(Database db, int version) async {
@@ -35,12 +40,23 @@ class DatabaseHelper {
       CREATE TABLE prestamos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         contactoId INTEGER NOT NULL,
-        monto REAL NOT NULL,
+        monto REAL NOT NULL,           -- Saldo actual
+        montoOriginal REAL NOT NULL,   -- Monto original
         pagado INTEGER NOT NULL,
         nota TEXT,
         FOREIGN KEY (contactoId) REFERENCES contactos(id)
       )
     ''');
+  }
+
+  // Soporte para migración de versión antigua que no tiene montoOriginal
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 3) {
+      // Agregamos montoOriginal y lo inicializamos igual que monto
+      await db.execute('ALTER TABLE prestamos ADD COLUMN montoOriginal REAL');
+      // Inicializamos montoOriginal = monto para préstamos existentes
+      await db.execute('UPDATE prestamos SET montoOriginal = monto WHERE montoOriginal IS NULL');
+    }
   }
 
   // CRUD Contacto
@@ -83,7 +99,10 @@ class DatabaseHelper {
   // CRUD Prestamo
   Future<int> insertPrestamo(Prestamo prestamo) async {
     final db = await instance.database;
-    return await db.insert('prestamos', prestamo.toMap());
+    // montoOriginal siempre igual a monto al crear
+    final map = prestamo.toMap();
+    map['montoOriginal'] = prestamo.montoOriginal;
+    return await db.insert('prestamos', map);
   }
 
   Future<Prestamo?> getPrestamo(int id) async {

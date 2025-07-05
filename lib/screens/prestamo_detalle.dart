@@ -27,7 +27,6 @@ class _PrestamoDetalleScreenState extends State<PrestamoDetalleScreen> {
     );
     _notaController = TextEditingController(text: widget.prestamo?.nota ?? '');
     _pagado = widget.prestamo?.pagado ?? false;
-
     if (widget.prestamo != null) {
       _cargarContacto(widget.prestamo!.contactoId);
     }
@@ -52,14 +51,19 @@ class _PrestamoDetalleScreenState extends State<PrestamoDetalleScreen> {
 
   Future<void> _savePrestamo() async {
     if (_formKey.currentState!.validate() && _selectedContacto != null) {
+      final isNuevo = widget.prestamo == null;
+      final montoOriginal = isNuevo
+          ? double.tryParse(_montoController.text) ?? 0.0
+          : widget.prestamo!.montoOriginal;
       final prestamo = Prestamo(
         id: widget.prestamo?.id,
         contactoId: _selectedContacto!.id!,
         monto: double.tryParse(_montoController.text) ?? 0.0,
+        montoOriginal: montoOriginal,
         pagado: _pagado,
         nota: _notaController.text,
       );
-      if (widget.prestamo == null) {
+      if (isNuevo) {
         await DatabaseHelper.instance.insertPrestamo(prestamo);
       } else {
         await DatabaseHelper.instance.updatePrestamo(prestamo);
@@ -165,7 +169,31 @@ class _PrestamoDetalleScreenState extends State<PrestamoDetalleScreen> {
                             : null,
                         style: theme.textTheme.textStyle.copyWith(fontSize: 18),
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        enabled: !isEditing, // Solo editable al crear
                       ),
+                      // Visualización del monto original (en edición)
+                      if (isEditing)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0, bottom: 8),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                CupertinoIcons.doc_text,
+                                color: CupertinoColors.systemGrey,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Original: \$${widget.prestamo!.montoOriginal.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  color: CupertinoColors.systemGrey,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       CupertinoTextFormFieldRow(
                         controller: _notaController,
                         placeholder: 'Nota (opcional)',
